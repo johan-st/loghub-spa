@@ -4,7 +4,7 @@ import Browser
 import Browser.Navigation as Nav
 import Debug exposing (log)
 import Html exposing (..)
-import Html.Attributes exposing (type_, value)
+import Html.Attributes exposing (style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Json.Decode as Decode exposing (Decoder, field)
@@ -56,7 +56,7 @@ apiUrl =
 
 init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init _ url key =
-    ( Model key (Debug.log "url" url) Loading, getIndex )
+    ( Model key url Loading, getIndex )
 
 
 type Msg
@@ -77,10 +77,6 @@ update msg model =
                     ( { model | state = Loaded index { fromIndex = 1, toIndex = index } }, Cmd.none )
 
                 Err err ->
-                    let
-                        debug =
-                            Debug.log "err" err
-                    in
                     ( { model | state = Failed }, Cmd.none )
 
         GotLogs res ->
@@ -89,10 +85,6 @@ update msg model =
                     ( { model | state = LoadedWithLogs data.latestIndex data.events }, Cmd.none )
 
                 Err err ->
-                    let
-                        debug =
-                            Debug.log "err" err
-                    in
                     ( { model | state = Failed }, Cmd.none )
 
         FormDataChanged formData ->
@@ -219,19 +211,28 @@ view model =
     }
 
 
+inlineCss : List (Attribute Msg)
+inlineCss =
+    [ style "font-family" "sans-serif"
+    , style "background-color" "#333"
+    , style "color" "#f90"
+    , style "min-height" "100vh"
+    ]
+
+
 loadingView : Html Msg
 loadingView =
-    div [] [ text "loading.." ]
+    div (inlineCss ++ []) [ text "loading.." ]
 
 
 errorView : Html Msg
 errorView =
-    div [] [ text "something went wrong" ]
+    div (inlineCss ++ []) [ text "something went wrong" ]
 
 
 loadedView : Int -> FormData -> Html Msg
 loadedView index form =
-    div []
+    div (inlineCss ++ [])
         [ text <| "Latest event index is " ++ String.fromInt index ++ "."
         , getLogsInputView index form
         ]
@@ -239,7 +240,7 @@ loadedView index form =
 
 getLogsInputView : Int -> FormData -> Html Msg
 getLogsInputView index formD =
-    div []
+    div (inlineCss ++ [])
         [ form []
             [ input [ type_ "number", value <| String.fromInt formD.fromIndex, onInput <| firstChanged formD ] []
             , input [ type_ "number", value <| String.fromInt formD.toIndex, onInput <| lastChanged formD ] []
@@ -276,7 +277,7 @@ lastChanged fdata new =
 
 loadedWithLogsView : Int -> Logs -> Html Msg
 loadedWithLogsView index logs =
-    div []
+    div (inlineCss ++ [])
         [ text <| "Latest event index is " ++ String.fromInt index ++ "."
         , p []
             [ text "Fetched "
@@ -290,7 +291,24 @@ loadedWithLogsView index logs =
 logsListView : Logs -> Html Msg
 logsListView logs =
     ul [] <|
-        List.map (\log -> li [] [ text <| Debug.toString log ]) logs
+        List.map
+            (\log ->
+                div []
+                    [ li [] [ text <| logToString log ] ]
+            )
+            logs
+
+
+logToString : Log -> String
+logToString l =
+    "{ "
+        ++ "createdAt= \""
+        ++ l.createdAt
+        ++ "\", index= "
+        ++ String.fromInt l.index
+        ++ ", msg= \""
+        ++ l.msg
+        ++ "\" }"
 
 
 
