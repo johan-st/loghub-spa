@@ -11101,15 +11101,15 @@ var $author$project$Main$update = F2(
 			case 'GotIndex':
 				var res = msg.a;
 				if (res.$ === 'Ok') {
-					var index = res.a;
+					var latestIndex = res.a;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
 							{
 								state: A2(
 									$author$project$Main$Loaded,
-									index,
-									{fromIndex: 1, toIndex: index})
+									latestIndex,
+									{fromIndex: 1, toIndex: latestIndex})
 							}),
 						$elm$core$Platform$Cmd$none);
 				} else {
