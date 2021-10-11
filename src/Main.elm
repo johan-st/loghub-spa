@@ -16,10 +16,16 @@ import Url
 -- MODEL
 
 
+type alias Flags =
+    { apiUrl : String
+    }
+
+
 type alias Model =
     { key : Nav.Key
     , url : Url.Url
     , state : State
+    , apiUrl : String
     }
 
 
@@ -45,18 +51,13 @@ type alias Log =
     }
 
 
-apiUrl : String
-apiUrl =
-    "https://log-hub-6cua55maua-lz.a.run.app"
-
-
 
 -- UPDATE
 
 
-init : () -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
-init _ url key =
-    ( Model key url Loading, getIndex )
+init : Flags -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
+init flags url key =
+    ( Model key url Loading flags.apiUrl, getIndex flags.apiUrl )
 
 
 type Msg
@@ -73,10 +74,10 @@ update msg model =
     case msg of
         GotIndex res ->
             case res of
-                Ok index ->
-                    ( { model | state = Loaded index { fromIndex = 1, toIndex = index } }, Cmd.none )
+                Ok latestIndex ->
+                    ( { model | state = Loaded latestIndex { fromIndex = 1, toIndex = latestIndex } }, Cmd.none )
 
-                Err err ->
+                Err _ ->
                     ( { model | state = Failed }, Cmd.none )
 
         GotLogs res ->
@@ -84,7 +85,7 @@ update msg model =
                 Ok data ->
                     ( { model | state = LoadedWithLogs data.latestIndex data.events }, Cmd.none )
 
-                Err err ->
+                Err _ ->
                     ( { model | state = Failed }, Cmd.none )
 
         FormDataChanged formData ->
@@ -98,7 +99,7 @@ update msg model =
 
         GetEventsClicked formData ->
             ( { model | state = Loading }
-            , getLogs formData.fromIndex formData.toIndex
+            , getLogs model.apiUrl formData.fromIndex formData.toIndex
             )
 
         UrlRequested urlRequest ->
@@ -135,8 +136,8 @@ indexFromState state =
 -- COMMANDS
 
 
-getLogs : Int -> Int -> Cmd Msg
-getLogs from to =
+getLogs : String -> Int -> Int -> Cmd Msg
+getLogs apiUrl from to =
     Http.get
         { expect = Http.expectJson GotLogs logsDecoder
         , url =
@@ -148,8 +149,8 @@ getLogs from to =
         }
 
 
-getIndex : Cmd Msg
-getIndex =
+getIndex : String -> Cmd Msg
+getIndex apiUrl =
     Http.get { expect = Http.expectJson GotIndex indexDecoder, url = apiUrl }
 
 
@@ -315,7 +316,7 @@ logToString l =
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
     Browser.application
         { init = init
